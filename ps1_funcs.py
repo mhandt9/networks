@@ -38,9 +38,9 @@ class ex1():
             for _, row in school_df.iterrows():
                 
                 # add nodes and edges to the graph based on named friends
-                node_attributes = row.drop(['aid', 'sqid'])
+                #node_attributes = row.drop(['aid', 'sqid'])
                 
-                G_school.add_node(row['sqid'], **node_attributes.to_dict())
+                G_school.add_node(row['sqid']) # , **node_attributes.to_dict() ??
                 
                 edges = [(row['aid'], friend_id) for friend_id in row[['mf1aid', 'mf2aid', 'mf3aid', 'mf4aid', 'mf5aid', 
                                                                       'ff1aid', 'ff2aid', 'ff3aid', 'ff4aid', 'ff5aid']].dropna()]
@@ -59,13 +59,17 @@ class ex1():
         # compute the largest eigenvalue of a graph's adjacency matrix
         adjacency_matrix = nx.adjacency_matrix(graph).astype(np.float64)
         adjacency_matrix_sparse = sp.csr_matrix(adjacency_matrix) # much faster using sparse matrix
-        
-        return max(sp.linalg.eigsh(adjacency_matrix_sparse, k=1, which='LA', return_eigenvectors=False))
 
-    def compute_eigenvalues_and_filter_schools(self, beta):
+        eigval1 = sp.linalg.eigsh(adjacency_matrix_sparse, k=1, which='LA', return_eigenvectors=False)
+        
+        return max(eigval1) # max here just to return a float isntead of array
+
+    def compute_largest_eigenvalues_and_filter(self, beta):
         # Compute largest eigenvalues and filter schools based on the condition
         for school_code, graph in self.school_graphs.items():
+            
             largest_eigenvalue = self._compute_largest_eigenvalue(graph)
+            
             if beta < 1 / largest_eigenvalue:
                 self.filtered_schools.append({
                     'school_code': school_code,
@@ -73,17 +77,27 @@ class ex1():
                     'largest_eigenvalue': largest_eigenvalue
                 })
                 self.eigenvalues[school_code] = largest_eigenvalue
+        
         return self.filtered_schools
 
     def compute_bonacich_centrality(self, beta=0.01):
         # Compute Bonacich centrality for filtered schools
         for school_data in self.filtered_schools:
+            
             school_code = school_data['school_code']
             graph = school_data['graph']
             adjacency_matrix = nx.adjacency_matrix(graph)
+            
             n = adjacency_matrix.shape[0]
             I = np.eye(n)  # Identity matrix
             C = np.linalg.inv(I - beta * adjacency_matrix.T) @ np.ones((n, 1))
             bonacich_centrality = C.flatten()
+            
             self.bonacich[school_code] = bonacich_centrality
+        
         return self.bonacich
+    
+    
+    class ex2():
+        def __init__(self) -> None:
+            pass
