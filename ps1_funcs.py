@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import networkx as nx
 import scipy.sparse as sp
+import matplotlib.pyplot as plt
 
 class ex1():
     def __init__(self, friends_raw, schools_raw):
@@ -14,7 +15,7 @@ class ex1():
         self.data = pd.DataFrame()  # cleaned data
         self.school_graphs = {}  # school graphs
         self.eigenvalues = {}  # largest eigenvalues
-        self.filtered_schools = []  # filtered schools
+        self.filtered_schools = {}  # filtered schools
         self.bonacich = {}  # bonacich centrality
 
     def clean(self, id_list):
@@ -67,24 +68,21 @@ class ex1():
     def compute_largest_eigenvalues_and_filter(self, beta):
         # Compute largest eigenvalues and filter schools based on the condition
         for school_code, graph in self.school_graphs.items():
-            
+
             largest_eigenvalue = self._compute_largest_eigenvalue(graph)
             
             if beta < 1 / largest_eigenvalue:
-                self.filtered_schools.append({
-                    'school_code': school_code,
+                self.filtered_schools[school_code] = {
                     'graph': graph,
                     'largest_eigenvalue': largest_eigenvalue
-                })
+                }
                 self.eigenvalues[school_code] = largest_eigenvalue
         
         return self.filtered_schools
-
-    def compute_bonacich_centrality(self, beta=0.01):
+    
+    def compute_bonacich_centrality(self, beta):
         # Compute Bonacich centrality for filtered schools
-        for school_data in self.filtered_schools:
-            
-            school_code = school_data['school_code']
+        for school_code, school_data in self.filtered_schools.items():
             graph = school_data['graph']
             adjacency_matrix = nx.adjacency_matrix(graph)
             
@@ -92,11 +90,51 @@ class ex1():
             I = np.eye(n)  # Identity matrix
             C = np.linalg.inv(I - beta * adjacency_matrix.T) @ np.ones((n, 1))
             bonacich_centrality = C.flatten()
-            
             self.bonacich[school_code] = bonacich_centrality
-        
         return self.bonacich
     
+    def compute_activity(self, alpha=1):
+        # Compute the interior solution for filtered schools
+        for school_code, school_data in self.filtered_schools.items():
+            graph = school_data['graph']
+            adjacency_matrix = nx.adjacency_matrix(graph)
+            
+            n = adjacency_matrix.shape[0]
+            I = np.eye(n)  # Identity matrix
+            beta = 0.01  # Assuming a default value for beta, you can adjust as needed
+            
+            # Compute (I - beta * G)^-1
+            inverse_matrix = np.linalg.inv(I - beta * adjacency_matrix)
+
+            # Compute x* = alpha * (I - beta * G)^-1 * 1
+            ones_vector = np.ones((n, 1))
+            activity = alpha * np.dot(inverse_matrix, ones_vector).flatten()
+
+            # Store the interior solution
+            school_data['activity'] = activity
+
+        return self.filtered_schools
+    
+    def aggregate_activity(self, plot):
+        # Calculate aggregate activity per school normalized by school size
+        aggregate_activity = []
+
+        for school_code, school_data in self.filtered_schools.items():
+            activity = school_data.get('activity', None)
+            if activity is not None:
+                aggregate_activity.append(np.sum(activity) / len(activity))  # Normalize by school size
+
+        if plot:
+            # Plot the distribution of aggregate activity
+            plt.figure(figsize=(8, 6))
+            plt.hist(aggregate_activity, bins=20, color='skyblue', edgecolor='black')
+            plt.title('Distribution of Aggregate Activity per School (Normalized by School Size)')
+            plt.xlabel('Aggregate Activity per School (Normalized)')
+            plt.ylabel('Frequency')
+            plt.grid(True)
+            plt.show()
+
+        return aggregate_activity
     
     class ex2():
         def __init__(self) -> None:
