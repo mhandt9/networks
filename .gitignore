@@ -4,3 +4,5 @@ __pycache__/
 
 # data in case it cannot be made public
 AddHealth.RData
+friend.csv
+inschool.csv
