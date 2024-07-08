@@ -2,7 +2,7 @@
 Homeworks and Projects from the course: Networks: Concepts and Algorithms
 
 
-Repository for everything related to the course. No data however, since I don't think I am allowed to make it public.
+Repository for everything related to the course. No data however, since it is not to be made public.
 
 ## Problem Set 1:
 
